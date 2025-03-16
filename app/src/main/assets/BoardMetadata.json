@@ -1,0 +1,77 @@
+[
+  {
+    "name": "boggle-1970",
+    "size": 4,
+    "dice": [
+      "AACIOT",
+      "ABILTY",
+      "ABJMOQ",
+      "ACDEMP",
+      "ACELRS",
+      "ADENVZ",
+      "AHMORS",
+      "BIFORX",
+      "DENOSW",
+      "DKNOTU",
+      "EEFHIY",
+      "EGKLUY",
+      "EGINTV",
+      "EHINPS",
+      "ELPSTU",
+      "GILRUW"
+    ]
+  },
+  {
+    "name": "boggle-2008",
+    "size": 4,
+    "dice": [
+      "AAEEGN",
+      "ABBJOO",
+      "ACHOPS",
+      "AFFKPS",
+      "AOOTTW",
+      "CIMOTU",
+      "DEILRX",
+      "DELRVY",
+      "DISTTY",
+      "EEGHNW",
+      "EEINSU",
+      "EHRTVW",
+      "EIOSST",
+      "ELRTTY",
+      "HIMNUQ",
+      "HLNNRZ"
+    ]
+  },
+  {
+    "name": "boggle-big",
+    "size": 5,
+    "dice": [
+      "AAAFRS",
+      "AAEEEE",
+      "AAFIRS",
+      "ADENNN",
+      "AEEEEM",
+      "AEEGMU",
+      "AEGMNN",
+      "AFIRSY",
+      "BJKQXZ",
+      "CCENST",
+      "CEIILT",
+      "CEILPT",
+      "CEIPST",
+      "DDHNOT",
+      "DHHLOR",
+      "DHLNOR",
+      "DHLNOR",
+      "EIIITT",
+      "EMOTTT",
+      "ENSSSU",
+      "FIPRSY",
+      "GORRVW",
+      "IPRRRY",
+      "NOOTUW",
+      "OOOTTU"
+    ]
+  }
+]
