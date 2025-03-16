@@ -28,8 +28,8 @@ data class Boggle(
         found.clear()
 
         var i = 0
-        for (x in 0 until boardSize) {
-            for (y in 0 until boardSize) {
+        for (y in 0 until boardSize) {
+            for (x in 0 until boardSize) {
                 var letter = letters[i].toString()
                 if (letter == "Q") {
                     letter = "QU"
@@ -75,8 +75,8 @@ data class Boggle(
         var yMin = max(tile.y - 1, minBound)
         var yMax = min(tile.y + 1, maxBound) + 1
 
-        for (x in xMin until xMax) {
-            for (y in yMin until yMax) {
+        for (y in yMin until yMax) {
+            for (x in xMin until xMax) {
                 if (!(tile.equals(x, y))) {
                     neighbors.add(getTileAt(x, y))
                 }
@@ -151,7 +151,6 @@ data class Boggle(
      * Returns true if the given [word] is valid and has not yet been found.
      */
     fun tryWord(word: String): SearchResponse {
-        // TODO: Refactor this to return an enum with success, fail on faulty word, fail on already found
         if (found.containsKey(word)) {
             if (found[word] == true) {
                 return SearchResponse.ALREADY_FOUND_WORD
