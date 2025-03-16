@@ -44,7 +44,8 @@ import kotlin.random.Random
 
 class MainActivity : ComponentActivity() {
     private lateinit var boardMetadata: List<BoardMetadata>
-    private var dictionaryTrie = Trie()
+    private lateinit var boggle: Boggle
+    private var trieDictionary = Trie()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,33 +53,21 @@ class MainActivity : ComponentActivity() {
         val dictionaryString = this.assets.open("StringDictionary.txt").bufferedReader().use {
             it.readLines()
         }
-        dictionaryTrie = Trie()
+        trieDictionary = Trie()
         for (word in dictionaryString) {
-            dictionaryTrie.addWord(word.uppercase())
+            trieDictionary.addWord(word.uppercase())
         }
+        boggle = Boggle(trieDictionary)
 
         enableEdgeToEdge()
         setContent {
             boardMetadata = loadBoardMetadata(this, "BoardMetadata.json")
             // TODO: Change from hardcoded board preset
             val board = createBoardFromMetadata(boardMetadata[1])
-            drawBoggleScreen(board)
+            boggle.resetBoard(board)
+            drawBoggleScreen(boggle, board)
         }
     }
-
-    fun getPoints(word: String): Int {
-        if (word.length < 3) {
-            return 0
-        } else {
-            var scoring = mutableListOf(1, 1, 2, 3, 5, 11)
-            return scoring[min(word.length, 8) - 3]
-        }
-    }
-
-    val trieSaver = listSaver<Trie, Any>(
-        save = { listOf(it.root, it.temp) },
-        restore = { Trie(root = it[0] as TrieNode, it[1] as String) }
-    )
 
     val boggleSaver = listSaver<Boggle, Any>(
         save = {
@@ -104,11 +93,11 @@ class MainActivity : ComponentActivity() {
     )
 
     @Composable
-    fun drawBoggleScreen(board: MutableList<Char>) {
+    fun drawBoggleScreen(boggle: Boggle, board: MutableList<String>) {
         var letters by rememberSaveable { mutableStateOf(board) }
         var word by rememberSaveable { mutableStateOf("") }
         var score by rememberSaveable { mutableIntStateOf(0) }
-        var boggle by rememberSaveable(stateSaver = boggleSaver) { mutableStateOf(Boggle(dictionaryTrie)) }
+        var boggle by rememberSaveable(stateSaver = boggleSaver) { mutableStateOf(boggle) }
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -131,7 +120,7 @@ class MainActivity : ComponentActivity() {
             )
             Spacer(modifier = Modifier.height(25.dp))
             drawSubmitButton(
-                word, onSubmitWord = { value ->
+                onSubmitWord = { value ->
                     if (boggle.findWord(word)) {
                         val result = boggle.tryWord(word)
                         if (result == Boggle.SearchResponse.FOUND_NEW_WORD) {
@@ -155,15 +144,21 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Helper to return letters for previewing UI elements.
+     */
+    fun mockBoggleLetters(letters: String = "ABCDEFGHIJKLMNOP"): MutableList<String> {
+        return letters.split("").filterNot { value -> value == "" }.toMutableList()
+    }
+
     @Preview
     @Composable
     fun previewBoggleScreen() {
-        val letters = "ABCDEFGHIJKLMNOP".toMutableList()
-        drawBoggleScreen(letters)
+        drawBoggleScreen(Boggle(Trie()), mockBoggleLetters())
     }
 
     @Composable
-    fun drawBoard(letters: MutableList<Char>, word: String, onUpdateWord: (String) -> Unit) {
+    fun drawBoard(letters: MutableList<String>, word: String, onUpdateWord: (String) -> Unit) {
         LazyVerticalGrid(
             GridCells.Fixed(4),
             modifier = Modifier
@@ -178,19 +173,18 @@ class MainActivity : ComponentActivity() {
     @Preview
     @Composable
     fun previewBoard() {
-        val letters = "ABCDEFGHIJKLMNOP".toMutableList()
-        drawBoard(letters, "", {})
+        drawBoard(mockBoggleLetters(), "", {})
     }
 
     @Composable
-    fun drawTile(letter: Char, word: String, onUpdateWord: (String) -> Unit) {
+    fun drawTile(letter: String, word: String, onUpdateWord: (String) -> Unit) {
         Button(
             onClick = {
                 onUpdateWord(word.plus(letter))
             },
         ) {
             Text(
-                text = letter.toString(),
+                text = letter,
                 style = MaterialTheme.typography.displayLarge,
                 modifier = Modifier
                     .requiredHeight(IntrinsicSize.Min)
@@ -203,11 +197,17 @@ class MainActivity : ComponentActivity() {
     @Preview
     @Composable
     fun previewTile() {
-        drawTile('A',"", {})
+        drawTile("A","", {})
+    }
+
+    @Preview
+    @Composable
+    fun previewTileQ() {
+        drawTile("Qu", "", {})
     }
 
     @Composable
-    fun drawShuffleButton(letters: MutableList<Char>, onUpdateLetters: (MutableList<Char>) -> Unit, word: String, onUpdateWord: () -> Unit) {
+    fun drawShuffleButton(letters: MutableList<String>, onUpdateLetters: (MutableList<String>) -> Unit, word: String, onUpdateWord: () -> Unit) {
         Button(
             onClick = {
                 onUpdateLetters(createBoardFromMetadata(boardMetadata[1]))
@@ -221,11 +221,11 @@ class MainActivity : ComponentActivity() {
     @Preview
     @Composable
     fun previewShuffleButton() {
-        drawShuffleButton(mutableListOf<Char>(), {}, "", {})
+        drawShuffleButton(mutableListOf(), {}, "", {})
     }
 
     @Composable
-    fun drawSubmitButton(word: String, onSubmitWord: (String) -> Unit) {
+    fun drawSubmitButton(onSubmitWord: (String) -> Unit) {
         Button(
             onClick = {
                 onSubmitWord("")
@@ -238,7 +238,7 @@ class MainActivity : ComponentActivity() {
     @Preview
     @Composable
     fun previewSubmitButton() {
-        drawSubmitButton("", {})
+        drawSubmitButton({})
     }
 
     @Composable
@@ -266,14 +266,15 @@ class MainActivity : ComponentActivity() {
         return parseJsonToModel(json)
     }
 
-    fun createBoardFromMetadata(metadata: BoardMetadata): MutableList<Char> {
+    fun createBoardFromMetadata(metadata: BoardMetadata): MutableList<String> {
         val count = metadata.size * metadata.size
-        val board = mutableListOf<Char>()
+        val board = mutableListOf<String>()
         metadata.dice.shuffle()
         var i = 0
         for (die in metadata.dice) {
             val seed = List(count) { Random.nextInt(0, 6) }
-            board.add(die[seed[i]])
+            var letter = boggle.getCharacter(die[seed[i]].toString())
+            board.add(letter)
         }
         return board
     }

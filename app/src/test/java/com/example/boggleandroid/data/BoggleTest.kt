@@ -11,19 +11,19 @@ class BoggleTest {
     fun setup() {
         boggle = Boggle(Trie())
         boggle.boardSize = 3
-        boggle.resetBoard(mutableListOf<Char>(
-            'A', 'B', 'C',  //  0, 1, 2,
-            'E', 'F', 'G',  //  3, 4, 5,
-            'H', 'I', 'J'   //  6, 7, 8
+        boggle.resetBoard(mutableListOf<String>(
+            "A", "B", "C",  //  0, 1, 2,
+            "E", "F", "G",  //  3, 4, 5,
+            "H", "I", "J"   //  6, 7, 8
         ))
     }
 
     @Test
     fun testResetBoardWithSpecialCharacters() {
-        boggle.resetBoard(mutableListOf<Char>(
-            'Z', 'Z', 'Z',
-            'Z', 'Z', 'Z',
-            'Z', 'Q', 'I'
+        boggle.resetBoard(mutableListOf<String>(
+            "Z", "Z", "Z",
+            "Z", "Z", "Z",
+            "Z", "Q", "I"
         ))
         assertEquals("Z", boggle.board[0].value)
         assertEquals("QU", boggle.board[7].value)
@@ -93,10 +93,10 @@ class BoggleTest {
 
     @Test
     fun testFindAllWordsWithSpecialCharacters() {
-        boggle.resetBoard(mutableListOf<Char>(
-            'Z', 'Z', 'Z',
-            'Z', 'Z', 'Z',
-            'Z', 'Q', 'I'
+        boggle.resetBoard(mutableListOf<String>(
+            "Z", "Z", "Z",
+            "Z", "Z", "Z",
+            "Z", "Q", "I"
         ))
         boggle.trie.addWord("QUIZ")
         boggle.findAllWords()

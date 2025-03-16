@@ -13,6 +13,7 @@ class TrieNode(
      * Returns the index of the provided Char, mapping A:Z to 0:25.
      */
     private fun getIndex(value: Char): Int {
+        // TODO: Handle special characters for Super Big Boggle
         return value.code - 'A'.code
     }
 

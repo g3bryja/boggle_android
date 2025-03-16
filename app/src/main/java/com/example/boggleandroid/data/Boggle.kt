@@ -23,17 +23,14 @@ data class Boggle(
     /**
      * Reinitializes the Boggle board from the given list of [letters] and resets the map of found words.
      */
-    fun resetBoard(letters: MutableList<Char>) {
+    fun resetBoard(letters: MutableList<String>) {
         board.clear()
         found.clear()
 
         var i = 0
         for (y in 0 until boardSize) {
             for (x in 0 until boardSize) {
-                var letter = letters[i].toString()
-                if (letter == "Q") {
-                    letter = "QU"
-                }
+                var letter = getCharacter(letters[i])
                 board.add(BoggleTile(letter, x, y))
                 i += 1
             }
@@ -47,6 +44,17 @@ data class Boggle(
      */
     fun loadDictionary(trie: Trie) {
         this.trie = trie
+    }
+
+    /**
+     * Translates the given [letter] to a special character, if necessary.
+     */
+    fun getCharacter(letter: String, asUpper: Boolean = true): String {
+        if (letter == "Q") {
+            return "QU"
+        } else {
+            return letter.toString()
+        }
     }
 
     /**
