@@ -33,8 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.boggleandroid.data.BoardMetadata
-import com.example.boggleandroid.helper.Trie
-import com.example.boggleandroid.helper.TrieNode
+import com.example.boggleandroid.data.Trie
+import com.example.boggleandroid.data.TrieNode
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlin.math.min

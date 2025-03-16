@@ -1,4 +1,4 @@
-package com.example.boggleandroid.helper
+package com.example.boggleandroid.data
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize

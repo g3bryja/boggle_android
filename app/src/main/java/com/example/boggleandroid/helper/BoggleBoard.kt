@@ -1,6 +1,7 @@
 package com.example.boggleandroid.helper
 
 import com.example.boggleandroid.data.BoggleTile
+import com.example.boggleandroid.data.Trie
 import kotlin.math.max
 import kotlin.math.min
 
