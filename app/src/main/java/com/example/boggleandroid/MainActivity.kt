@@ -108,7 +108,6 @@ class MainActivity : ComponentActivity() {
         var letters by rememberSaveable { mutableStateOf(board) }
         var word by rememberSaveable { mutableStateOf("") }
         var score by rememberSaveable { mutableIntStateOf(0) }
-        var foundTrie by rememberSaveable(stateSaver = trieSaver) { mutableStateOf(Trie()) }
         var boggle by rememberSaveable(stateSaver = boggleSaver) { mutableStateOf(Boggle(dictionaryTrie)) }
 
         Column(
@@ -133,11 +132,11 @@ class MainActivity : ComponentActivity() {
             Spacer(modifier = Modifier.height(25.dp))
             drawSubmitButton(
                 word, onSubmitWord = { value ->
-                    if (dictionaryTrie.hasWord(word) && !foundTrie.hasWord(word)) {
-                        score += getPoints(word)
-                        foundTrie.temp = word
-                        foundTrie.addWord(word)
-                        boggle.tryWord(word)
+                    if (boggle.findWord(word)) {
+                        val result = boggle.tryWord(word)
+                        if (result == Boggle.SearchResponse.FOUND_NEW_WORD) {
+                            score += boggle.getPoints(word)
+                        }
                     }
                     word = value
                 }
@@ -151,7 +150,6 @@ class MainActivity : ComponentActivity() {
                 word, onUpdateWord = {
                     word = ""
                     score = 0
-                    foundTrie = Trie()
                 }
             )
         }

@@ -14,6 +14,12 @@ data class Boggle(
     var boardSize: Int = 4,
     var minWordSize: Int = 3
 ) : Parcelable {
+    enum class SearchResponse {
+        FOUND_NEW_WORD,
+        ALREADY_FOUND_WORD,
+        WORD_DOES_NOT_EXIST
+    }
+
     /**
      * Reinitializes the Boggle board from the given list of [letters] and resets the map of found words.
      */
@@ -61,15 +67,17 @@ data class Boggle(
      * Returns all tiles that border the specified [tile].
      */
     fun getNeighbors(tile: BoggleTile): MutableList<BoggleTile> {
+        val minBound = 0
+        val maxBound = boardSize - 1
         var neighbors = mutableListOf<BoggleTile>()
-        var xMin = max(tile.x - 1, 0)
-        var xMax = min(tile.x + 1, boardSize - 1) + 1
-        var yMin = max(tile.y - 1, 0)
-        var yMax = min(tile.y + 1, boardSize - 1) + 1
+        var xMin = max(tile.x - 1, minBound)
+        var xMax = min(tile.x + 1, maxBound) + 1
+        var yMin = max(tile.y - 1, minBound)
+        var yMax = min(tile.y + 1, maxBound) + 1
 
         for (x in xMin until xMax) {
             for (y in yMin until yMax) {
-                if (!(x == tile.x && y == tile.y)) {
+                if (!(tile.equals(x, y))) {
                     neighbors.add(getTileAt(x, y))
                 }
             }
@@ -100,7 +108,7 @@ data class Boggle(
      */
     fun pathContainsTile(tiles: MutableList<BoggleTile>, tile: BoggleTile): Boolean {
         for (item in tiles) {
-            if (item === tile) {
+            if (tile.equals(item)) {
                 return true
             }
         }
@@ -135,16 +143,25 @@ data class Boggle(
         }
     }
 
+    fun findWord(word: String): Boolean {
+        return found.containsKey(word)
+    }
+
     /**
      * Returns true if the given [word] is valid and has not yet been found.
      */
-    fun tryWord(word: String): Boolean {
+    fun tryWord(word: String): SearchResponse {
         // TODO: Refactor this to return an enum with success, fail on faulty word, fail on already found
-        if (isValidWord(word) && found.containsKey(word)) {
-            found[word] = true
-            return true
+        if (found.containsKey(word)) {
+            if (found[word] == true) {
+                return SearchResponse.ALREADY_FOUND_WORD
+            } else {
+                found[word] = true
+                return SearchResponse.FOUND_NEW_WORD
+            }
+        } else {
+            return SearchResponse.WORD_DOES_NOT_EXIST
         }
-        return false
     }
 
     /**
