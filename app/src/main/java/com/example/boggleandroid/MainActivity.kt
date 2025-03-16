@@ -33,6 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.boggleandroid.data.BoardMetadata
+import com.example.boggleandroid.data.Boggle
+import com.example.boggleandroid.data.BoggleTile
 import com.example.boggleandroid.data.Trie
 import com.example.boggleandroid.data.TrieNode
 import com.google.gson.Gson
@@ -78,12 +80,36 @@ class MainActivity : ComponentActivity() {
         restore = { Trie(root = it[0] as TrieNode, it[1] as String) }
     )
 
+    val boggleSaver = listSaver<Boggle, Any>(
+        save = {
+            listOf(
+                it.trie,
+                it.board,
+                it.found,
+                it.scoring,
+                it.boardSize,
+                it.minWordSize
+            )
+        },
+        restore = {
+            Boggle(
+                trie = it[0] as Trie,
+                board = it[1] as MutableList<BoggleTile>,
+                found = it[2] as MutableMap<String, Boolean>,
+                scoring = it[3] as MutableList<Int>,
+                boardSize = it[4] as Int,
+                minWordSize = it[5] as Int
+            )
+        }
+    )
+
     @Composable
     fun drawBoggleScreen(board: MutableList<Char>) {
         var letters by rememberSaveable { mutableStateOf(board) }
         var word by rememberSaveable { mutableStateOf("") }
         var score by rememberSaveable { mutableIntStateOf(0) }
         var foundTrie by rememberSaveable(stateSaver = trieSaver) { mutableStateOf(Trie()) }
+        var boggle by rememberSaveable(stateSaver = boggleSaver) { mutableStateOf(Boggle(dictionaryTrie)) }
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -111,6 +137,7 @@ class MainActivity : ComponentActivity() {
                         score += getPoints(word)
                         foundTrie.temp = word
                         foundTrie.addWord(word)
+                        boggle.tryWord(word)
                     }
                     word = value
                 }
@@ -119,6 +146,7 @@ class MainActivity : ComponentActivity() {
             drawShuffleButton(
                 letters, onUpdateLetters = { value ->
                     letters = value
+                    boggle.resetBoard(letters)
                 },
                 word, onUpdateWord = {
                     word = ""

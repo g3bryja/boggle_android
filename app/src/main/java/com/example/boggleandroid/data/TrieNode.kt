@@ -4,7 +4,11 @@ import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class TrieNode(var value: Char?, var end: Boolean = false, private var next: Array<TrieNode?> = arrayOfNulls(26)) : Parcelable {
+class TrieNode(
+    var value: Char?,
+    var end: Boolean = false,
+    private var next: Array<TrieNode?> = arrayOfNulls(26)
+) : Parcelable {
     /**
      * Returns the index of the provided Char, mapping A:Z to 0:25.
      */
@@ -15,11 +19,12 @@ class TrieNode(var value: Char?, var end: Boolean = false, private var next: Arr
     /**
      * Inserts a Trie node with the given [value] as a child, if it does not already exist.
      */
-    fun addNext(value: Char) {
+    fun addNext(value: Char): TrieNode {
         var index = getIndex(value)
         if (next[index] == null) {
             next[index] = TrieNode(value)
         }
+        return next[index]!!
     }
 
     /**

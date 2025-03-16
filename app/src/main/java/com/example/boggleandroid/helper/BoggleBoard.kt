@@ -31,7 +31,7 @@ class BoggleBoard {
         instantiateBoard(boardSize, minWordSize)
         for (x in 0 until boardSize) {
             for (y in 0 until boardSize) {
-                board!!.add(BoggleTile("", x, y, getIndex(x, y)))
+                board!!.add(BoggleTile("", x, y))
             }
         }
     }
@@ -43,7 +43,7 @@ class BoggleBoard {
         instantiateBoard(boardSize, minWordSize)
         for (x in 0 until boardSize) {
             for (y in 0 until boardSize) {
-                board!!.add(BoggleTile("", x, y, getIndex(x, y)))
+                board!!.add(BoggleTile("", x, y))
             }
         }
     }

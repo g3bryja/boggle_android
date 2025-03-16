@@ -4,19 +4,23 @@ import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-class Trie(var root: TrieNode = TrieNode(' '), var temp: String = "") : Parcelable {
+class Trie(
+    var root: TrieNode = TrieNode(' '),
+    var temp: String = ""
+) : Parcelable {
     /**
      * Inserts [word] into the Trie.
      */
     fun addWord(word: String) {
         var currentNode = root
+        var i = 0
         for (letter in word) {
-            currentNode.addNext(letter)
-            if (letter == word.last()) {
+            currentNode = currentNode.addNext(letter)
+            if (i == word.length - 1) {
                 currentNode.end = true
                 return
             }
-            currentNode = currentNode.getNext(letter)!!
+            i += 1
         }
     }
 
@@ -45,6 +49,11 @@ class Trie(var root: TrieNode = TrieNode(' '), var temp: String = "") : Parcelab
      * Returns true if the given [word] exists in the current Trie and the last letter is an ending node.
      */
     fun isFullWord(word: String): Boolean {
-        return getLastNode(word)?.end ?: false
+        val last = getLastNode(word)
+        if (last != null) {
+            return last.end
+        } else {
+            return false
+        }
     }
 }
