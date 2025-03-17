@@ -2,14 +2,18 @@ package com.example.boggleandroid
 
 import android.content.Context
 import android.os.Bundle
+import android.os.CountDownTimer
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
@@ -17,10 +21,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -36,16 +44,19 @@ import com.example.boggleandroid.data.BoardMetadata
 import com.example.boggleandroid.data.Boggle
 import com.example.boggleandroid.data.BoggleTile
 import com.example.boggleandroid.data.Trie
-import com.example.boggleandroid.data.TrieNode
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import kotlin.math.min
+import java.text.DecimalFormat
+import java.util.Locale
+import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
 class MainActivity : ComponentActivity() {
     private lateinit var boardMetadata: List<BoardMetadata>
     private lateinit var boggle: Boggle
     private var trieDictionary = Trie()
+
+    private val PADDING_SMALL = 20.dp
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -99,49 +110,134 @@ class MainActivity : ComponentActivity() {
         var score by rememberSaveable { mutableIntStateOf(0) }
         var boggle by rememberSaveable(stateSaver = boggleSaver) { mutableStateOf(boggle) }
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Text(
-                text = score.toString(),
-                style = MaterialTheme.typography.displaySmall
-            )
-            drawBoard(
-                letters,
-                word, onUpdateWord = { value ->
-                    word = value
-                }
-            )
-            Text(
-                text = word,
-                style = MaterialTheme.typography.displaySmall
-            )
-            Spacer(modifier = Modifier.height(25.dp))
-            drawSubmitButton(
-                onSubmitWord = { value ->
-                    if (boggle.findWord(word)) {
-                        val result = boggle.tryWord(word)
-                        if (result == Boggle.SearchResponse.FOUND_NEW_WORD) {
-                            score += boggle.getPoints(word)
+        Column {
+            // FILLER
+            Row(
+                modifier = Modifier
+                    .background(color = MaterialTheme.colorScheme.primary)
+                    .height(PADDING_SMALL)
+            ) {
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                )
+            }
+            // NAVIGATION
+            Row(
+                modifier = Modifier
+                    .background(color = MaterialTheme.colorScheme.primary)
+                    .fillMaxWidth()
+            ) {
+                Icon(
+                    Icons.Default.Menu,
+                    contentDescription = "Navigation Menu",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier
+                        .padding(PADDING_SMALL)
+                )
+            }
+            // HEADER
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                BoggleTimer(3 * 60 * 1000)
+                Text(
+                    text = score.toString(),
+                    style = MaterialTheme.typography.displaySmall,
+                    modifier = Modifier
+                        .padding(PADDING_SMALL)
+                )
+            }
+            // BODY
+            Row {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Top,
+                    modifier = Modifier
+                        .fillMaxSize()
+                ) {
+
+                    drawBoard(
+                        letters,
+                        word, onUpdateWord = { value ->
+                            word = value
                         }
-                    }
-                    word = value
+                    )
+                    Text(
+                        text = word,
+                        style = MaterialTheme.typography.displaySmall
+                    )
+                    Spacer(
+                        modifier = Modifier
+                            .height(PADDING_SMALL)
+                    )
+                    drawSubmitButton(
+                        onSubmitWord = { value ->
+                            if (boggle.findWord(word)) {
+                                val result = boggle.tryWord(word)
+                                if (result == Boggle.SearchResponse.FOUND_NEW_WORD) {
+                                    score += boggle.getPoints(word)
+                                }
+                            }
+                            word = value
+                        }
+                    )
+                    Spacer(
+                        modifier = Modifier
+                            .height(PADDING_SMALL)
+                    )
+                    drawShuffleButton(
+                        letters, onUpdateLetters = { value ->
+                            letters = value
+                            boggle.resetBoard(letters)
+                        },
+                        word, onUpdateWord = {
+                            word = ""
+                            score = 0
+                        }
+                    )
                 }
-            )
-            Spacer(modifier = Modifier.height(25.dp))
-            drawShuffleButton(
-                letters, onUpdateLetters = { value ->
-                    letters = value
-                    boggle.resetBoard(letters)
-                },
-                word, onUpdateWord = {
-                    word = ""
-                    score = 0
-                }
-            )
+            }
         }
+    }
+
+    @Preview
+    @Composable
+    fun previewBoggleScreen() {
+        drawBoggleScreen(Boggle(Trie()), mockBoggleLetters())
+    }
+
+    @Composable
+    fun BoggleTimer(time: Long) {
+        var text by rememberSaveable { mutableStateOf("") }
+
+        val countDownTimer = object : CountDownTimer(time, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                val seconds = ((millisUntilFinished / 1000.0) % 60.0).toInt()
+                val minutes = (TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished) % 60).toInt()
+                text = "${minutes.toString().padStart(1, '0')}:${seconds.toString().padStart(2, '0')}"
+            }
+
+            override fun onFinish() {
+                TODO("Not yet implemented")
+            }
+        }
+
+        DisposableEffect(key1 = "key") {
+            countDownTimer.start()
+            onDispose {
+                countDownTimer.cancel()
+            }
+        }
+
+        Text(
+            text = text,
+            style = MaterialTheme.typography.displaySmall,
+            modifier = Modifier
+                .padding(PADDING_SMALL)
+        )
     }
 
     /**
@@ -149,12 +245,6 @@ class MainActivity : ComponentActivity() {
      */
     fun mockBoggleLetters(letters: String = "ABCDEFGHIJKLMNOP"): MutableList<String> {
         return letters.split("").filterNot { value -> value == "" }.toMutableList()
-    }
-
-    @Preview
-    @Composable
-    fun previewBoggleScreen() {
-        drawBoggleScreen(Boggle(Trie()), mockBoggleLetters())
     }
 
     @Composable
@@ -185,11 +275,11 @@ class MainActivity : ComponentActivity() {
         ) {
             Text(
                 text = letter,
-                style = MaterialTheme.typography.displayLarge,
+                style = MaterialTheme.typography.displayMedium,
                 modifier = Modifier
                     .requiredHeight(IntrinsicSize.Min)
                     .width(IntrinsicSize.Min)
-                    .padding(0.dp)
+                    .padding(10.dp)
             )
         }
     }
