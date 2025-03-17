@@ -40,13 +40,6 @@ data class Boggle(
     }
 
     /**
-     * Loads the given [trie].
-     */
-    fun loadDictionary(trie: Trie) {
-        this.trie = trie
-    }
-
-    /**
      * Translates the given [letter] to a special character, if necessary.
      */
     fun getCharacter(letter: String, asUpper: Boolean = true): String {

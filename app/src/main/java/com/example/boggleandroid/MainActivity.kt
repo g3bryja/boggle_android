@@ -6,21 +6,23 @@ import android.os.CountDownTimer
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
@@ -37,6 +39,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -156,7 +159,6 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .fillMaxSize()
                 ) {
-
                     drawBoard(
                         letters,
                         word, onUpdateWord = { value ->
@@ -204,7 +206,7 @@ class MainActivity : ComponentActivity() {
     @Preview
     @Composable
     fun previewBoggleScreen() {
-        drawBoggleScreen(Boggle(Trie()), mockBoggleLetters())
+        drawBoggleScreen(Boggle(Trie()), previewBoggleLetters())
     }
 
     @Composable
@@ -238,13 +240,6 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    /**
-     * Helper to return letters for previewing UI elements.
-     */
-    fun mockBoggleLetters(letters: String = "ABCDEFGHIJKLMNOP"): MutableList<String> {
-        return letters.split("").filterNot { value -> value == "" }.toMutableList()
-    }
-
     @Composable
     fun drawBoard(letters: MutableList<String>, word: String, onUpdateWord: (String) -> Unit) {
         LazyVerticalGrid(
@@ -261,23 +256,31 @@ class MainActivity : ComponentActivity() {
     @Preview
     @Composable
     fun previewBoard() {
-        drawBoard(mockBoggleLetters(), "", {})
+        var letters = previewBoggleLetters()
+        letters[10] = "QU"
+        drawBoard(letters, "", {})
     }
 
     @Composable
     fun drawTile(letter: String, word: String, onUpdateWord: (String) -> Unit) {
         Button(
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(5.dp, MaterialTheme.colorScheme.scrim
+                .copy(alpha = 0.12f)
+                .compositeOver(MaterialTheme.colorScheme.primary)),
+
+            modifier = Modifier
+                .padding(4.dp)
+                .aspectRatio(1f),
             onClick = {
                 onUpdateWord(word.plus(letter))
             },
         ) {
             Text(
-                text = letter,
+                text = letter.first() + letter.substring(1).lowercase(),
                 style = MaterialTheme.typography.displayMedium,
                 modifier = Modifier
-                    .requiredHeight(IntrinsicSize.Min)
-                    .width(IntrinsicSize.Min)
-                    .padding(10.dp)
+                    .requiredWidth(IntrinsicSize.Max)
             )
         }
     }
@@ -286,12 +289,6 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun previewTile() {
         drawTile("A","", {})
-    }
-
-    @Preview
-    @Composable
-    fun previewTileQ() {
-        drawTile("Qu", "", {})
     }
 
     @Composable
@@ -365,6 +362,13 @@ class MainActivity : ComponentActivity() {
             board.add(letter)
         }
         return board
+    }
+
+    /**
+     * Helper to return letters for previewing UI elements.
+     */
+    fun previewBoggleLetters(letters: String = "ABCDEFGHIJKLMNOP"): MutableList<String> {
+        return letters.split("").filterNot { value -> value == "" }.toMutableList()
     }
 }
 
