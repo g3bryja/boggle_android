@@ -46,8 +46,6 @@ import com.example.boggleandroid.data.BoggleTile
 import com.example.boggleandroid.data.Trie
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import java.text.DecimalFormat
-import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
@@ -221,7 +219,7 @@ class MainActivity : ComponentActivity() {
             }
 
             override fun onFinish() {
-                TODO("Not yet implemented")
+
             }
         }
 
