@@ -7,12 +7,9 @@ import kotlin.math.min
 
 @Parcelize
 data class Boggle(
-    var trie: Trie,
-    var board: MutableList<BoggleTile> = mutableListOf(),
-    var found: MutableMap<String, Boolean> = mutableMapOf(),
-    var scoring: MutableList<Int> = mutableListOf(1, 1, 2, 3, 5, 11),
-    var boardSize: Int = 4,
-    var minWordSize: Int = 3
+    var trie: Trie = Trie(),
+    var boardState: BoardState = BoardState(),
+    var playerState: PlayerState = PlayerState()
 ) : Parcelable {
     enum class SearchResponse {
         FOUND_NEW_WORD,
@@ -21,47 +18,33 @@ data class Boggle(
     }
 
     /**
-     * Reinitializes the Boggle board from the given list of [letters] and resets the map of found words.
+     * Initializes the board state based on the given game [mode].
      */
-    fun resetBoard(letters: MutableList<String>) {
-        board.clear()
-        found.clear()
-
-        var i = 0
-        for (y in 0 until boardSize) {
-            for (x in 0 until boardSize) {
-                var letter = getCharacter(letters[i])
-                board.add(BoggleTile(letter, x, y))
-                i += 1
-            }
-        }
-
-        findAllWords()
+    fun initialize(mode: BoardState.Mode = BoardState.Mode.NORMAL) {
+        boardState.initialize(mode)
     }
 
     /**
-     * Translates the given [letter] to a special character, if necessary.
+     * Reinitializes the Boggle board from the given list of [letters] and resets the map of found words.
      */
-    fun getCharacter(letter: String, asUpper: Boolean = true): String {
-        if (letter == "Q") {
-            return "QU"
-        } else {
-            return letter.toString()
-        }
+    fun resetBoard(letters: MutableList<String>) {
+        boardState.resetTiles(letters)
+        playerState.reset()
+        findAllWords()
     }
 
     /**
      * Returns the index for the tile with the given ([x], [y]) coordinates.
      */
     private fun getIndex(x: Int, y: Int): Int {
-        return x + y * boardSize
+        return x + y * boardState.boardSize
     }
 
     /**
      * Returns the tile with the given ([x], [y]) coordinates.
      */
     fun getTileAt(x: Int, y: Int): BoggleTile {
-        return board[getIndex(x, y)]
+        return boardState.tiles[getIndex(x, y)]
     }
 
     /**
@@ -69,7 +52,7 @@ data class Boggle(
      */
     fun getNeighbors(tile: BoggleTile): MutableList<BoggleTile> {
         val minBound = 0
-        val maxBound = boardSize - 1
+        val maxBound = boardState.boardSize - 1
         var neighbors = mutableListOf<BoggleTile>()
         var xMin = max(tile.x - 1, minBound)
         var xMax = min(tile.x + 1, maxBound) + 1
@@ -89,7 +72,7 @@ data class Boggle(
     /**
      * Returns the word spelled by [tiles].
      */
-    fun getWord(tiles: MutableList<BoggleTile>): String {
+    fun getWord(tiles: MutableList<BoggleTile> = playerState.path): String {
         var word = ""
         for (tile in tiles) {
             word += tile.value
@@ -101,13 +84,13 @@ data class Boggle(
      * Returns true if the given [word] exists in the trie.
      */
     fun isValidWord(word: String): Boolean {
-        return word.count() >= minWordSize && trie.isFullWord(word)
+        return word.count() >= boardState.minWordSize && trie.isFullWord(word)
     }
 
     /**
      * Returns true if [tile] exists in [tiles].
      */
-    fun pathContainsTile(tiles: MutableList<BoggleTile>, tile: BoggleTile): Boolean {
+    fun tileInPath(tile: BoggleTile, tiles: MutableList<BoggleTile> = playerState.path): Boolean {
         for (item in tiles) {
             if (tile.equals(item)) {
                 return true
@@ -121,19 +104,19 @@ data class Boggle(
      */
     fun findAllWords() {
         var searchStack: MutableList<MutableList<BoggleTile>> = mutableListOf()
-        for (tile in board) {
+        for (tile in boardState.tiles) {
             searchStack.add(mutableListOf(tile))
         }
         while (searchStack.isNotEmpty()) {
             var path = searchStack.last()
             searchStack = searchStack.subList(0, searchStack.lastIndex)
             var word = getWord(path)
-            if (isValidWord(word) && !found.containsKey(word)) {
-                found[word] = false
+            if (isValidWord(word) && !playerState.hasWord(word)) {
+                playerState.addFound(word)
             }
             var neighbors = getNeighbors(path.last())
             for (neighbor in neighbors) {
-                if (!pathContainsTile(path, neighbor)) {
+                if (!tileInPath(neighbor, path)) {
                     var newPath = path.map{ it.copy() } as MutableList
                     newPath.add(neighbor)
                     if (trie.hasWord(getWord(newPath))) {
@@ -145,33 +128,22 @@ data class Boggle(
     }
 
     fun findWord(word: String): Boolean {
-        return found.containsKey(word)
+        return playerState.hasWord(word)
     }
 
     /**
      * Returns true if the given [word] is valid and has not yet been found.
      */
     fun tryWord(word: String): SearchResponse {
-        if (found.containsKey(word)) {
-            if (found[word] == true) {
+        if (playerState.hasWord(word)) {
+            if (playerState.hasFound(word)) {
                 return SearchResponse.ALREADY_FOUND_WORD
             } else {
-                found[word] = true
+                playerState.markAsFound(word)
                 return SearchResponse.FOUND_NEW_WORD
             }
         } else {
             return SearchResponse.WORD_DOES_NOT_EXIST
-        }
-    }
-
-    /**
-     * Returns the point value for the given [word].
-     */
-    fun getPoints(word: String): Int {
-        if (word.length < 3) {
-            return 0
-        } else {
-            return scoring[min(word.length, 8) - 3]
         }
     }
 }

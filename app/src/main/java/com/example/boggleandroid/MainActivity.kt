@@ -32,8 +32,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -44,18 +44,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.boggleandroid.data.BoardMetadata
+import com.example.boggleandroid.data.BoardState
 import com.example.boggleandroid.data.Boggle
 import com.example.boggleandroid.data.BoggleTile
+import com.example.boggleandroid.data.PlayerState
 import com.example.boggleandroid.data.Trie
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
+@SuppressWarnings
 class MainActivity : ComponentActivity() {
     private lateinit var boardMetadata: List<BoardMetadata>
     private lateinit var boggle: Boggle
-    private var trieDictionary = Trie()
+    private var trie = Trie()
 
     private val PADDING_SMALL = 20.dp
 
@@ -65,11 +68,12 @@ class MainActivity : ComponentActivity() {
         val dictionaryString = this.assets.open("StringDictionary.txt").bufferedReader().use {
             it.readLines()
         }
-        trieDictionary = Trie()
+        trie = Trie()
         for (word in dictionaryString) {
-            trieDictionary.addWord(word.uppercase())
+            trie.addWord(word.uppercase())
         }
-        boggle = Boggle(trieDictionary)
+        boggle = Boggle(trie = trie)
+        boggle.initialize()
 
         enableEdgeToEdge()
         setContent {
@@ -85,30 +89,24 @@ class MainActivity : ComponentActivity() {
         save = {
             listOf(
                 it.trie,
-                it.board,
-                it.found,
-                it.scoring,
-                it.boardSize,
-                it.minWordSize
+                it.boardState,
+                it.playerState
             )
         },
         restore = {
             Boggle(
                 trie = it[0] as Trie,
-                board = it[1] as MutableList<BoggleTile>,
-                found = it[2] as MutableMap<String, Boolean>,
-                scoring = it[3] as MutableList<Int>,
-                boardSize = it[4] as Int,
-                minWordSize = it[5] as Int
+                boardState = it[1] as BoardState,
+                playerState = it[2] as PlayerState
             )
         }
     )
 
     @Composable
     fun drawBoggleScreen(boggle: Boggle) {
-        var path by rememberSaveable { mutableStateOf(mutableListOf<BoggleTile>()) }
-        var score by rememberSaveable { mutableIntStateOf(0) }
         var boggle by rememberSaveable(stateSaver = boggleSaver) { mutableStateOf(boggle) }
+        var currentWord by rememberSaveable { mutableStateOf(boggle.playerState.word) }
+        var currentScore by remember { mutableStateOf(boggle.playerState.score) }
 
         Column {
             // FILLER
@@ -144,7 +142,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 BoggleTimer(3 * 60 * 1000)
                 Text(
-                    text = score.toString(),
+                    text = currentScore.toString(),
                     style = MaterialTheme.typography.displaySmall,
                     modifier = Modifier
                         .padding(PADDING_SMALL)
@@ -159,14 +157,10 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize()
                 ) {
                     drawBoard(
-                        boggle,
-                        path,
-                        onUpdateWord = { value ->
-                            path = value
-                        }
+                        boggle
                     )
                     Text(
-                        text = boggle.getWord(path),
+                        text = currentWord,
                         style = MaterialTheme.typography.displaySmall
                     )
                     Spacer(
@@ -175,14 +169,14 @@ class MainActivity : ComponentActivity() {
                     )
                     drawSubmitButton(
                         onSubmitWord = {
-                            val word = boggle.getWord(path)
+                            val word = boggle.getWord()
                             if (boggle.findWord(word)) {
                                 val result = boggle.tryWord(word)
                                 if (result == Boggle.SearchResponse.FOUND_NEW_WORD) {
-                                    score += boggle.getPoints(word)
+                                    boggle.playerState.score = boggle.playerState.score + boggle.boardState.getPoints(word)
                                 }
                             }
-                            path.clear()
+                            boggle.playerState.resetWord()
                         }
                     )
                     Spacer(
@@ -192,8 +186,6 @@ class MainActivity : ComponentActivity() {
                     drawShuffleButton(
                         onShuffle = { value ->
                             boggle.resetBoard(value)
-                            path.clear()
-                            score = 0
                         }
                     )
                 }
@@ -204,9 +196,9 @@ class MainActivity : ComponentActivity() {
     @Preview
     @Composable
     fun previewBoggleScreen() {
-        val boggle = Boggle(Trie())
-        boggle.board = previewBoggleTiles()
-        drawBoggleScreen(boggle)
+//        val boggle = Boggle(Trie())
+//        boggle.board = previewBoggleTiles()
+//        drawBoggleScreen(boggle)
     }
 
     @Composable
@@ -245,14 +237,14 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun drawBoard(boggle: Boggle, path: MutableList<BoggleTile>, onUpdateWord: (MutableList<BoggleTile>) -> Unit) {
+    fun drawBoard(boggle: Boggle) {
         LazyVerticalGrid(
             GridCells.Fixed(4),
             modifier = Modifier
                 .padding(32.dp)
         ) {
-            items(boggle.board) { tile ->
-                drawTile(tile, path, onUpdateWord)
+            items(boggle.boardState.tiles) { tile ->
+                drawTile(tile)
             }
         }
     }
@@ -262,9 +254,9 @@ class MainActivity : ComponentActivity() {
     fun previewBoard() {
         var tiles = previewBoggleTiles()
         tiles[10].value = "QU"
-        val boggle = Boggle(Trie())
-        boggle.board = tiles
-        drawBoard(boggle, mutableListOf(), {})
+//        val boggle = Boggle(Trie())
+//        boggle.board = tiles
+//        drawBoard(boggle, mutableListOf(), {})
     }
 
     @Composable
@@ -285,9 +277,9 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun drawTile(tile: BoggleTile, path: MutableList<BoggleTile>, onUpdateWord: (MutableList<BoggleTile>) -> Unit) {
+    fun drawTile(tile: BoggleTile) {
         var selected by rememberSaveable { mutableStateOf(false) }
-//        selected = boggle.pathContainsTile(path, tile)
+        selected = boggle.tileInPath(tile)
 
         Button(
             shape = RoundedCornerShape(8.dp),
@@ -296,18 +288,15 @@ class MainActivity : ComponentActivity() {
                 .padding(4.dp)
                 .aspectRatio(1f),
             onClick = {
-//                if (!selected) {
-//                    path.add(tile)
-//                } else if (tile == path.last()) {
+                if (!selected) {
+//                    boggle.playerState.a(tile)
+                } else if (tile == boggle.playerState.path.last()) {
 //                    path.removeAt(path.lastIndex)
-//                }
-
-                path.add(tile)
-                onUpdateWord(path)
+                }
+                boggle.playerState.updateWord(tile)
             },
         ) {
             Text(
-//                text = letter.first() + letter.substring(1).lowercase(),
                 text = tile.value,
                 style = MaterialTheme.typography.displayMedium,
                 modifier = Modifier
@@ -319,7 +308,7 @@ class MainActivity : ComponentActivity() {
     @Preview
     @Composable
     fun previewTile() {
-        drawTile(BoggleTile("A"), mutableListOf(), {})
+        drawTile(BoggleTile("A"))
     }
 
     @Composable
@@ -388,7 +377,7 @@ class MainActivity : ComponentActivity() {
         var i = 0
         for (die in metadata.dice) {
             val seed = List(count) { Random.nextInt(0, 6) }
-            var letter = boggle.getCharacter(die[seed[i]].toString())
+            var letter = boggle.boardState.getCharacter(die[seed[i]].toString())
             board.add(letter)
         }
         return board

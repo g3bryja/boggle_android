@@ -1,42 +1,44 @@
 package com.example.boggleandroid.data
 
-import junit.framework.TestCase.assertEquals
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 
 class BoggleTest {
-    lateinit var boggle: Boggle
+    private lateinit var boggle: Boggle
 
     @Before
     fun setup() {
-        boggle = Boggle(Trie())
-        boggle.boardSize = 3
-        boggle.resetBoard(mutableListOf<String>(
-            "A", "B", "C",  //  0, 1, 2,
-            "E", "F", "G",  //  3, 4, 5,
-            "H", "I", "J"   //  6, 7, 8
-        ))
+        boggle = Boggle()
+        boggle.initialize(BoardState.Mode.NORMAL)
+        //  A B C D
+        //  E F G H
+        //  I J K L
+        //  M N O P
+        boggle.resetBoard(getMockTileInput("ABCDEFGHIJKLMNOP"))
     }
 
     @Test
-    fun testResetBoardWithSpecialCharacters() {
-        boggle.resetBoard(mutableListOf<String>(
-            "Z", "Z", "Z",
-            "Z", "Z", "Z",
-            "Z", "Q", "I"
-        ))
-        assertEquals("Z", boggle.board[0].value)
-        assertEquals("QU", boggle.board[7].value)
+    fun testResetBoard() {
+        boggle.trie.addWord("QUIZ")
+        //  Q I Z Z
+        //  Z Z Z Z
+        //  Z Z Z Z
+        //  Z Z Z Z
+        boggle.resetBoard(getMockTileInput("QIZZZZZZZZZZZZZZ"))
+        val expectedTile = BoggleTile("QU", 0, 0)
+        val expectedFound = mutableMapOf("QUIZ" to false)
+        assertEquals(expectedTile, boggle.boardState.tiles[0])
+        assertEquals(expectedFound, boggle.playerState.found)
     }
 
     @Test
     fun testGetNeighborsForCenter() {
-        val tile = boggle.board[4]
+        val tile = boggle.boardState.tiles[5]
+        val expectedIndices = mutableListOf(0, 1, 2, 4, 6, 8, 9, 10)
         val expected = mutableListOf<BoggleTile>()
-        for (item in boggle.board) {
-            if (!tile.equals(item)) {
-                expected.add(item)
-            }
+        for (i in expectedIndices) {
+            expected.add(boggle.boardState.tiles[i])
         }
         val neighbors = boggle.getNeighbors(tile)
         assertEquals(expected, neighbors)
@@ -44,11 +46,11 @@ class BoggleTest {
 
     @Test
     fun testGetNeighborsForTopRight() {
-        val tile = boggle.board[2]
+        val tile = boggle.boardState.tiles[3]
+        val expectedIndices = mutableListOf(2, 6, 7)
         val expected = mutableListOf<BoggleTile>()
-        val expectedIndices = mutableListOf(1, 4, 5)
         for (i in expectedIndices) {
-            expected.add(boggle.board[i])
+            expected.add(boggle.boardState.tiles[i])
         }
         val neighbors = boggle.getNeighbors(tile)
         assertEquals(expected, neighbors)
@@ -56,11 +58,11 @@ class BoggleTest {
 
     @Test
     fun testGetNeighborsForBottomLeft() {
-        val tile = boggle.board[6]
+        val tile = boggle.boardState.tiles[12]
+        val expectedIndices = mutableListOf(8, 9, 13)
         val expected = mutableListOf<BoggleTile>()
-        val expectedIndices = mutableListOf(3, 4, 7)
         for (i in expectedIndices) {
-            expected.add(boggle.board[i])
+            expected.add(boggle.boardState.tiles[i])
         }
         val neighbors = boggle.getNeighbors(tile)
         assertEquals(expected, neighbors)
@@ -68,18 +70,18 @@ class BoggleTest {
 
     @Test
     fun testGetWord() {
-        val expected = "FIG"
+        val expected = "ABF"
         var path = mutableListOf<BoggleTile>()
+        path.add(boggle.getTileAt(0, 0))
+        path.add(boggle.getTileAt(1, 0))
         path.add(boggle.getTileAt(1, 1))
-        path.add(boggle.getTileAt(1, 2))
-        path.add(boggle.getTileAt(2, 1))
         val word = boggle.getWord(path)
         assertEquals(expected, word)
     }
 
     @Test
     fun testFindAllWords() {
-        val words = mutableListOf("FAB", "FAE", "FIG", "JIG")
+        val words = mutableListOf("FAE", "FIN", "MIN")
         for (word in words) {
             boggle.trie.addWord(word)
         }
@@ -92,28 +94,24 @@ class BoggleTest {
     }
 
     @Test
-    fun testFindAllWordsWithSpecialCharacters() {
-        boggle.resetBoard(mutableListOf<String>(
-            "Z", "Z", "Z",
-            "Z", "Z", "Z",
-            "Z", "Q", "I"
-        ))
-        boggle.trie.addWord("QUIZ")
-        boggle.findAllWords()
-        assert(boggle.findWord("QUIZ"))
-    }
-
-    @Test
     fun testTryWord() {
-        val word = "something"
+        val word = "SOMETHING"
         var response = boggle.tryWord(word)
         assertEquals(Boggle.SearchResponse.WORD_DOES_NOT_EXIST, response)
 
-        boggle.found[word] = false
+        boggle.playerState.found[word] = false
         response = boggle.tryWord(word)
         assertEquals(Boggle.SearchResponse.FOUND_NEW_WORD, response)
 
         response = boggle.tryWord(word)
         assertEquals(Boggle.SearchResponse.ALREADY_FOUND_WORD, response)
+    }
+
+    fun getMockTileInput(str: String): MutableList<String> {
+        val letters = mutableListOf<String>()
+        for (letter in str) {
+            letters.add(letter.toString())
+        }
+        return letters
     }
 }
