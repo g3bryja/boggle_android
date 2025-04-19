@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -33,8 +32,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,12 +40,12 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.boggleandroid.boggle.BoggleScreen
 import com.example.boggleandroid.data.BoardMetadata
-import com.example.boggleandroid.data.BoardState
 import com.example.boggleandroid.data.Boggle
 import com.example.boggleandroid.data.BoggleTile
-import com.example.boggleandroid.data.PlayerState
 import com.example.boggleandroid.data.Trie
+import com.example.boggleandroid.helper.AssetReader
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.util.concurrent.TimeUnit
@@ -56,16 +53,19 @@ import kotlin.random.Random
 
 @SuppressWarnings
 class MainActivity : ComponentActivity() {
-    private lateinit var boardMetadata: List<BoardMetadata>
+    private var boardMetadata: MutableList<BoardMetadata> = mutableListOf()
     private lateinit var boggle: Boggle
+    private lateinit var assetReader: AssetReader
     private var trie = Trie()
+    val BOARD_METADATA_ASSETS_PATH = "BoardMetadata.json"
+    val WORD_LIST_ASSETS_PATH = "WordList.txt"
 
     private val PADDING_SMALL = 20.dp
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val dictionaryString = this.assets.open("StringDictionary.txt").bufferedReader().use {
+        val dictionaryString = this.assets.open("WordList.txt").bufferedReader().use {
             it.readLines()
         }
         trie = Trie()
@@ -75,38 +75,50 @@ class MainActivity : ComponentActivity() {
         boggle = Boggle(trie = trie)
         boggle.initialize()
 
+        assetReader = AssetReader()
+
         enableEdgeToEdge()
         setContent {
-            boardMetadata = loadBoardMetadata(this, "BoardMetadata.json")
-            // TODO: Change from hardcoded board preset
-            val board = createBoardFromMetadata(boardMetadata[1])
-            boggle.resetBoard(board)
-            drawBoggleScreen(boggle)
+//            boardMetadata = loadBoardMetadata(this, "BoardMetadata.json")
+//            // TODO: Change from hardcoded board preset
+//            val board = createBoardFromMetadata(boardMetadata[1])
+
+//            val json: String = "......."
+//            val type = object : TypeToken<List<MyObject>>() {}.type
+//            val result: List<MyObject> = parseArray<List<MyObject>>(json = json, typeToken = type)
+//            println(result)
+            val type = object : TypeToken<List<BoardMetadata>>() {}.type
+            boardMetadata = assetReader.getJson<List<BoardMetadata>>(this, BOARD_METADATA_ASSETS_PATH, type).toMutableList()
+            BoggleScreen(metadata = boardMetadata)
+//            boggle.resetBoard(board)
+//            drawBoggleScreen(boggle)
         }
     }
 
-    val boggleSaver = listSaver<Boggle, Any>(
-        save = {
-            listOf(
-                it.trie,
-                it.boardState,
-                it.playerState
-            )
-        },
-        restore = {
-            Boggle(
-                trie = it[0] as Trie,
-                boardState = it[1] as BoardState,
-                playerState = it[2] as PlayerState
-            )
-        }
-    )
+//    val boggleSaver = listSaver<Boggle, Any>(
+//        save = {
+//            listOf(
+//                it.trie,
+//                it.boardState,
+//                it.playerState
+//            )
+//        },
+//        restore = {
+//            Boggle(
+//                trie = it[0] as Trie,
+//                boardState = it[1] as BoardState,
+//                playerState = it[2] as PlayerState
+//            )
+//        }
+//    )
 
     @Composable
     fun drawBoggleScreen(boggle: Boggle) {
-        var boggle by rememberSaveable(stateSaver = boggleSaver) { mutableStateOf(boggle) }
-        var currentWord by rememberSaveable { mutableStateOf(boggle.playerState.word) }
-        var currentScore by remember { mutableStateOf(boggle.playerState.score) }
+//        var boggle by rememberSaveable(stateSaver = boggleSaver) { mutableStateOf(boggle) }
+//        var currentWord by rememberSaveable { mutableStateOf(boggle.playerState.word) }
+//        var currentScore by remember { mutableStateOf(boggle.playerState.score) }
+//        val boardState by boggle.boardState.collectAsState()
+//        val playerState by boggle.playerState.collectAsState()
 
         Column {
             // FILLER
@@ -141,12 +153,12 @@ class MainActivity : ComponentActivity() {
                     .fillMaxWidth()
             ) {
                 BoggleTimer(3 * 60 * 1000)
-                Text(
-                    text = currentScore.toString(),
-                    style = MaterialTheme.typography.displaySmall,
-                    modifier = Modifier
-                        .padding(PADDING_SMALL)
-                )
+//                Text(
+//                    text = currentScore.toString(),
+//                    style = MaterialTheme.typography.displaySmall,
+//                    modifier = Modifier
+//                        .padding(PADDING_SMALL)
+//                )
             }
             // BODY
             Row {
@@ -159,10 +171,10 @@ class MainActivity : ComponentActivity() {
                     drawBoard(
                         boggle
                     )
-                    Text(
-                        text = currentWord,
-                        style = MaterialTheme.typography.displaySmall
-                    )
+//                    Text(
+//                        text = currentWord,
+//                        style = MaterialTheme.typography.displaySmall
+//                    )
                     Spacer(
                         modifier = Modifier
                             .height(PADDING_SMALL)
@@ -173,10 +185,10 @@ class MainActivity : ComponentActivity() {
                             if (boggle.findWord(word)) {
                                 val result = boggle.tryWord(word)
                                 if (result == Boggle.SearchResponse.FOUND_NEW_WORD) {
-                                    boggle.playerState.score = boggle.playerState.score + boggle.boardState.getPoints(word)
+//                                    boggle.playerState.score = boggle.playerState.score + boggle.boardState.getPoints(word)
                                 }
                             }
-                            boggle.playerState.resetWord()
+//                            boggle.playerState.resetWord()
                         }
                     )
                     Spacer(
@@ -243,9 +255,9 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier
                 .padding(32.dp)
         ) {
-            items(boggle.boardState.tiles) { tile ->
-                drawTile(tile)
-            }
+//            items(boggle.boardState.tiles) { tile ->
+//                drawTile(tile)
+//            }
         }
     }
 
@@ -288,12 +300,12 @@ class MainActivity : ComponentActivity() {
                 .padding(4.dp)
                 .aspectRatio(1f),
             onClick = {
-                if (!selected) {
-//                    boggle.playerState.a(tile)
-                } else if (tile == boggle.playerState.path.last()) {
-//                    path.removeAt(path.lastIndex)
-                }
-                boggle.playerState.updateWord(tile)
+//                if (!selected) {
+////                    boggle.playerState.a(tile)
+//                } else if (tile == boggle.playerState.path.last()) {
+////                    path.removeAt(path.lastIndex)
+//                }
+//                boggle.playerState.updateWord(tile)
             },
         ) {
             Text(
@@ -377,8 +389,8 @@ class MainActivity : ComponentActivity() {
         var i = 0
         for (die in metadata.dice) {
             val seed = List(count) { Random.nextInt(0, 6) }
-            var letter = boggle.boardState.getCharacter(die[seed[i]].toString())
-            board.add(letter)
+//            var letter = boggle.boardState.getCharacter(die[seed[i]].toString())
+//            board.add(letter)
         }
         return board
     }

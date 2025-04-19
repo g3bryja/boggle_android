@@ -1,6 +1,7 @@
 [
   {
-    "name": "boggle-1970",
+    "name": "LEGACY",
+    "description": "1972 Boggle letter distribution",
     "size": 4,
     "dice": [
       "AACIOT",
@@ -22,7 +23,8 @@
     ]
   },
   {
-    "name": "boggle-2008",
+    "name": "NORMAL",
+    "description": "Modern Boggle letter distribution",
     "size": 4,
     "dice": [
       "AAEEGN",
@@ -44,7 +46,8 @@
     ]
   },
   {
-    "name": "boggle-big",
+    "name": "BIG",
+    "description": "Expanded letter distribution for 5x5 grid",
     "size": 5,
     "dice": [
       "AAAFRS",
